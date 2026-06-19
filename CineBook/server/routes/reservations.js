@@ -9,6 +9,10 @@ function requireAuth(req, res, next) {
   next();
 }
 
+function hasShowingStarted(schedule) {
+  return new Date(`${schedule.date}T${schedule.startTime}:00`) <= new Date();
+}
+
 // Confirm the new reservation stored in the session
 router.post('/', requireAuth, async (req, res) => {
   const pending = req.session.pendingSeats;
@@ -19,6 +23,12 @@ router.post('/', requireAuth, async (req, res) => {
   const { scheduleId, seats } = pending;
 
   try {
+    const schedule = await Schedule.findByPk(scheduleId);
+    if (!schedule) return res.status(404).json({ error: 'Schedule not found' });
+    if (hasShowingStarted(schedule)) {
+      return res.status(400).json({ error: 'Cannot reserve seats for a past showing' });
+    }
+
     const existingReservations = await Reservation.findAll({
       where: { scheduleId },
       include: [{ model: ReservedSeat, attributes: ['rowNum', 'colNum'] }],
@@ -67,6 +77,12 @@ router.put('/:id', requireAuth, async (req, res) => {
     if (!reservation) return res.status(404).json({ error: 'Reservation not found' });
     if (reservation.userId !== req.session.userId) {
       return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const schedule = await Schedule.findByPk(reservation.scheduleId);
+    if (!schedule) return res.status(404).json({ error: 'Schedule not found' });
+    if (hasShowingStarted(schedule)) {
+      return res.status(400).json({ error: 'Cannot edit a reservation for a past showing' });
     }
 
     // Check new seats are not taken by OTHER reservations for the same showing

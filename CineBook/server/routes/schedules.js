@@ -3,6 +3,10 @@ const { Schedule, Hall, Cinema, Movie, Reservation, ReservedSeat } = require('..
 
 const router = express.Router();
 
+function hasShowingStarted(schedule) {
+  return new Date(`${schedule.date}T${schedule.startTime}:00`) <= new Date();
+}
+
 router.get('/:id/seats', async (req, res) => {
   try {
     const scheduleId = parseInt(req.params.id);
@@ -51,14 +55,25 @@ router.get('/:id/seats', async (req, res) => {
 });
 
 // Store the user's seat selection in the server session
-router.post('/:id/select', (req, res) => {
+router.post('/:id/select', async (req, res) => {
   const scheduleId = parseInt(req.params.id);
   const { seats } = req.body;
   if (!seats || !Array.isArray(seats) || seats.length === 0) {
     return res.status(400).json({ error: 'No seats provided' });
   }
-  req.session.pendingSeats = { scheduleId, seats };
-  res.json({ message: 'Seats stored in session' });
+
+  try {
+    const schedule = await Schedule.findByPk(scheduleId);
+    if (!schedule) return res.status(404).json({ error: 'Schedule not found' });
+    if (hasShowingStarted(schedule)) {
+      return res.status(400).json({ error: 'Cannot select seats for a past showing' });
+    }
+
+    req.session.pendingSeats = { scheduleId, seats };
+    res.json({ message: 'Seats stored in session' });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 module.exports = router;

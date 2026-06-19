@@ -333,6 +333,32 @@ body {
   color: var(--text);
 }
 
+/* ── Movie search ── */
+.movie-search-wrap {
+  margin-bottom: 1.5rem;
+}
+
+.movie-search {
+  width: 100%;
+  max-width: 420px;
+  padding: 0.7rem 0.9rem;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s, background-color 0.2s;
+}
+
+.movie-search:focus {
+  border-color: var(--accent);
+}
+
+.movie-search::placeholder {
+  color: var(--text-sub);
+}
+
 /* ── Weekly schedule ── */
 .week-grid {
   display: grid;

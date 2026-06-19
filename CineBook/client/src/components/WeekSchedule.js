@@ -44,8 +44,10 @@ function WeekSchedule() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [weekOffset, setWeekOffset] = useState(0);
+  const [movieSearch, setMovieSearch] = useState('');
 
   const fromDate = getMondayDate(weekOffset);
+  const normalizedSearch = movieSearch.trim().toLowerCase();
 
   useEffect(() => {
     setLoading(true);
@@ -120,34 +122,53 @@ function WeekSchedule() {
       ) : (
         <>
           <p className="page-subtitle">Click a showtime to reserve seats</p>
+          <div className="movie-search-wrap">
+            <input
+              className="movie-search"
+              type="search"
+              placeholder="Search movies..."
+              value={movieSearch}
+              onChange={e => setMovieSearch(e.target.value)}
+              aria-label="Search movies"
+            />
+          </div>
           <div className="week-grid">
-            {weekDates.map((date, idx) => (
-              <div key={date} className="day-column">
-                <div className={`day-header${date === today ? ' today' : ''}`}>
-                  <div>{DAY_NAMES[idx]}</div>
-                  <div className="day-date">{formatDate(date)}</div>
-                </div>
-                <div className="day-slots">
-                  {(schedule[date] || []).length === 0 ? (
-                    <div className="no-slots">No showings</div>
-                  ) : (
-                    (schedule[date] || []).map(slot => (
-                      <div
-                        key={slot.id}
-                        className="schedule-slot"
-                        onClick={() => navigate(`/schedule/${slot.id}`)}
-                      >
-                        <div className="slot-time">{slot.startTime}</div>
-                        <div className="slot-title">{slot.title}</div>
-                        <div className="slot-info">
-                          {slot.hallName} &middot; {slot.duration} min
-                        </div>
+            {weekDates.map((date, idx) => {
+              const daySlots = schedule[date] || [];
+              const visibleSlots = normalizedSearch
+                ? daySlots.filter(slot => slot.title.toLowerCase().includes(normalizedSearch))
+                : daySlots;
+
+              return (
+                <div key={date} className="day-column">
+                  <div className={`day-header${date === today ? ' today' : ''}`}>
+                    <div>{DAY_NAMES[idx]}</div>
+                    <div className="day-date">{formatDate(date)}</div>
+                  </div>
+                  <div className="day-slots">
+                    {visibleSlots.length === 0 ? (
+                      <div className="no-slots">
+                        {normalizedSearch ? 'No matching showings' : 'No showings'}
                       </div>
-                    ))
-                  )}
+                    ) : (
+                      visibleSlots.map(slot => (
+                        <div
+                          key={slot.id}
+                          className="schedule-slot"
+                          onClick={() => navigate(`/schedule/${slot.id}`)}
+                        >
+                          <div className="slot-time">{slot.startTime}</div>
+                          <div className="slot-title">{slot.title}</div>
+                          <div className="slot-info">
+                            {slot.hallName} &middot; {slot.duration} min
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
